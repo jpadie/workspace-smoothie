@@ -1,0 +1,27 @@
+IMPORTANT: jogging: we really need to do this?  ( https://github.com/gnea/grbl/wiki/Grbl-v1.1-Jogging )
+            the actual widget works quite good for jogging, I don't see so much enhancements 
+            adding those commands.
+            
+            I think it's would be much better 
+            to create a new widget to control the machine from an analog joystick
+            maybe connected with an arduino to the spjs (or better way wireless!)
+            and use the $J commands to do that.
+
+            JUSTIN:
+            there are good reasons to implement the $J interface.  the main one is the jog reporting and the lack of modality. 
+            but it's not vital! 
+            Question: should we prevent X/Y jogging when Z<=0?  or perhaps alert the user that they could be destroying their bit or their workpiece?
+
+
+
+
+
+- Jogging command must be like:
+    cmd = '$J=G91' + direction + val + " F" + feedrate + "\n";
+    otherwise the command its executed in absolute machine coords
+    ref: http://linuxcnc.org/docs/html/gcode/g-code.html#gcode:g90-g91
+
+- We need an input/btn to choose Feedrate for the $J commands
+
+
+
