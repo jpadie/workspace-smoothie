@@ -1392,7 +1392,7 @@ cpdefine("inline:com-chilipeppr-workspace-grbl-smoothie", ["chilipeppr_ready"], 
             // GRBL for Smoothie
             chilipeppr.load(
                 "#com-chilipeppr-widget-grbl-smoothie-instance",
-				"http://raw.githubusercontent.com/jpadie/widget-grbl-autolevel/master/auto-generated-widget.html",
+				"http://raw.githubusercontent.com/jpadie/cp-smooth/master/auto-generated-widget.html",
                 function() {
                     cprequire(
                         ["inline:com-chilipeppr-widget-grbl-smoothie"], 
