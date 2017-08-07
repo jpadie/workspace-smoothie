@@ -46,14 +46,14 @@ Function.prototype.clone = function() {
 };
 
 // This is the main definition of your widget. Give it a unique name.
-cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function() {
+cpdefine("inline:com-chilipeppr-workspace-grbl-smoothie", ["chilipeppr_ready"], function() {
     return {
         /**
          * The ID of the widget. You must define this and make it unique.
          */
-        id: "com-chilipeppr-workspace-grbl", // Make the id the same as the cpdefine id
-        name: "Workspace / grbl", // The descriptive name of your widget.
-        desc: `A ChiliPeppr Workspace grbl.`,
+        id: "com-chilipeppr-workspace-grbl-smoothie", // Make the id the same as the cpdefine id
+        name: "Workspace for SmoothieBoards in grbl mode", // The descriptive name of your widget.
+        desc: "Workspace for SmoothieBoards in grbl mode",
         url: "(auto fill by runme.js)", // The final URL of the working widget as a single HTML file with CSS and Javascript inlined. You can let runme.js auto fill this if you are using Cloud9.
         fiddleurl: "(auto fill by runme.js)", // The edit URL. This can be auto-filled by runme.js in Cloud9 if you'd like, or just define it on your own to help people know where they can edit/fork your widget
         githuburl: "(auto fill by runme.js)", // The backing github repo
@@ -284,11 +284,10 @@ cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function(
             console.log('WORKSPACE: loading autolevel');
             chilipeppr.load(
                 "#com-chilipeppr-ws-autolevel",
-                "http://raw.githubusercontent.com/chilipeppr-grbl/grbl-widget-autolevel/master/auto-generated-widget.html",
+                "http://raw.githubusercontent.com/jpadie/widget-grbl-autolevel/master/auto-generated-widget.html",
                 function() {
                     require(["inline:com-chilipeppr-widget-autolevel"],
-
-                        function(autolevel) {
+						function(autolevel) {
                             autolevel.init();
                             // setup toggle button
                             var alBtn = $('#com-chilipeppr-ws-gcode-menu .autolevel-button');
@@ -307,190 +306,13 @@ cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function(
                                 }
                                 $(window).trigger('resize');
 
-                            });
-
-                            var newDoNextStep = function() {
-                                console.warn("doNextStep");
-
-                                if (autolevel.isPaused) {
-                                    console.warn("AUTOLEVEL WIDGET: we are paused. returning.");
-                                    autolevel.status("Paused");
-                                    return;
-                                }
-
-                                if (autolevel.currentStep === null) {
-                                    // we are just starting
-                                    autolevel.status("Starting probes");
-                                    autolevel.currentStep = 0;
-                                    chilipeppr.publish("/com-chilipeppr-widget-grbl-autolevel/probing", true);
-
-                                }
-                                else {
-                                    autolevel.currentStep++;
-                                    console.warn("AUTOLEVEL WIDGET: moving to next probe point.");
-                                    autolevel.status("moving to next probe point");
-                                }
-
-                                if (autolevel.currentStep >= autolevel.probes.length) {
-                                    // we're done
-                                    console.warn("AUTOLEVEL WIDGET: next step is greater than probes array length. done.");
-                                    autolevel.status("Moving Z to safety height");
-                                    var g = "(Moving to Z safety height)\n" +
-                                        "G91\n" +
-                                        "G0Z" + $('.autolevel-elem.al-coord.z-safetyheight').val() + "\n" +
-                                        "G90\n";
-                                    autolevel.send(g);
-                                    autolevel.status("Done running probe. Found all Zs for " + autolevel.probes.length + " locations");
-                                    console.warn("AUTOLEVEL WIDGET: Done running probe. Found all Zs for " + autolevel.probes.length + " locations");
-                                    autolevel.stopAutoLevel();
-                                    chilipeppr.publish("/com-chilipeppr-widget-grbl-autolevel/probing", false);
-
-                                    // store file automatically
-                                    var fileStr = JSON.stringify(autolevel.probes);
-                                    var lastLoc = "x:" + autolevel.probes[autolevel.probes.length - 1].x + ",y:" + autolevel.probes[autolevel.probes.length - 1].y;
-                                    var info = {
-                                        name: "Probed " + autolevel.probes.length + " locs. Last loc: " + lastLoc,
-                                        lastModified: new Date()
-                                    };
-                                    autolevel.createRecentFileEntry(fileStr, info);
-                                    autolevel.status("Created a recent probe data entry for you called \"" + info.name + "\" available in pulldown menu for this widget.");
-
-                                    // spit out debug
-                                    console.warn("AUTOLEVEL WIDGET: Final JSON data.", JSON.stringify(autolevel.probes));
-                                    return;
-                                }
-
-                                //These values should be pulling off input boxes, need to be updated to get the .val() of the specific input box.
-
-                                var probe = autolevel.probes[autolevel.currentStep];
-                                var pos = "{x:" + probe.x + ",y:" + probe.y + "}";
-                                autolevel.status("Moving to " + pos);
-                                console.warn('AUTOLEVEL WIDGET: Moving to " + pos');
-                                autolevel.send("G0 Z" + $(".high-z").val() + "\n"); //raise probe
-                                autolevel.send("G0 X" + probe.x + " Y" + probe.y + "\n"); //move to next probe point
-                                autolevel.send("G0 Z" + $(".probe-z").val() + "\n"); //lower probe to starting point
-
-
-                                if (autolevel.currentStep == 0) {
-                                    // could adjust the z value for the first probe to find the surface, but currently it is same as other steps.
-                                    autolevel.send("G38.2 Z" + $(".maxneg-z").val() + " F" + $(".probe-fr").val() + "\n");
-                                }
-                                else {
-                                    // on subsequent we have a known z near pcb board so no need to go too negative (just in case)
-                                    autolevel.send("G38.2 Z" + $(".maxneg-z").val() + " F" + $(".probe-fr").val() + "\n");
-                                }
-
-                                probe.sent = true; //mark probe sent as true.
-
-                            };
-                            var newFadeOutUserObject = function() {
-                                if (!autolevel.isFadeOutUserObject && autolevel.user3dObject !== null) {
-                                    // fade out the user object so our matrix is visible
-                                    chilipeppr.publish('/com-chilipeppr-widget-3dviewer/wakeanimate', "");
-                                    var o = autolevel.user3dObject;
-                                    var that = autolevel;
-                                    that.previousLayerOpacities = [];
-                                    o.children.forEach(function iterLayers(lyr) {
-                                        if (lyr.material == undefined || lyr.material.opacity == undefined) {}
-                                        else {
-                                            that.previousLayerOpacities.push(lyr.material.opacity);
-                                            lyr.material.opacity = 0.035;
-                                        }
-                                    });
-                                    autolevel.isFadeOutUserObject = true;
-                                }
-                            };
-                            autolevel.fadeOutUserObject = newFadeOutUserObject;
-                            var newStopAutoLevel = function() {
-                                // connect to cnccontroller for probe responses
-                                chilipeppr.unsubscribe("/com-chilipeppr-interface-cnccontroller/proberesponse", this, this.probeResponse);
-                                chilipeppr.publish("/com-chilipeppr-widget-grbl-autolevel/probing", false);
-                                autolevel.isPaused = true;
-                                $('.com-chilipeppr-widget-autolevel-stop').popover('hide');
-                                $('.com-chilipeppr-widget-autolevel-pause').popover('hide');
-                                $('.com-chilipeppr-widget-autolevel-run').prop('disabled', false);
-                                $('.com-chilipeppr-widget-autolevel-pause').prop('disabled', true);
-                                autolevel.currentStep = null; //when stopping probing or completing probe run, reset currentStep to null to indicate to probeResponse function that we are not expecting any further communication from cnc interface.
-                            };
-                            var newProbeResponse = function(result) {
-
-                                //expecting either coordinate object {"x":x,"y":y,"z":z} (float values) or string "alarm" if probe failed.
-
-                                //console.warn("received probe response");
-                                if (result !== "alarm" && autolevel.currentStep !== null) {
-                                    console.warn("AUTOLEVEL WIDGET:  received probe response: ", result);
-                                    var probe = autolevel.probes[autolevel.currentStep]; //pull current probe
-
-                                    probe.z = result.z;
-
-                                    probe.done = true;
-                                    probe.ts = new Date();
-
-                                    if (autolevel.currentStep === 0) {
-                                        // this is our 1st position, which isn't really a position, it's our auto-setting of 0
-                                        //this.status("Set our 1st probe position as new Z zero.");
-                                        probe.z = 0;
-                                        autolevel.send("G92Z0\n"); //reset Z to
-                                        console.warn("AUTOLEVEL WIDGET: resetting z min in wcs");
-                                    }
-                                    else {
-                                        var pos = '{x:' + probe.x + ',y:' + probe.y + '}';
-                                        autolevel.status("Working on probe for " + pos + " Found lowest Z:" + probe.z);
-                                        console.warn("AUTOLEVEL WIDGET: Working on probe for " + pos + " Found lowest Z:" + probe.z);
-                                    }
-
-                                    // update matrix to show results
-                                    autolevel.removeRegionFrom3d();
-                                    if (!autolevel.isMatrixShowing) {
-                                        autolevel.toggleShowMatrix();
-                                    }
-                                    else {
-                                        autolevel.refreshProbeMatrix();
-                                    }
-                                    autolevel.doNextStep();
-                                }
-                                //receiving alarm state will put the probing into pause, and move back one step so that the same probe can be attempted again.
-                                //at this point user may need to cancel probing and regenerate probe commands with a different max neg z, or unlock controller (if locked in alarm state) and unpause to try the probe again.
-                                else if (result == 'alarm') {
-                                    //handle for alarm state?
-                                    console.warn("AUTOLEVEL WIDGET: Auto Level: uh oh, alarm state received...");
-                                    autolevel.status("probe failed, clear controller alarm before resuming");
-                                    autolevel.pause(); //pause execution
-                                    autolevel.currentStep--; //move back one step so that after alarm is reset probing can repeat the failed attempt.
-                                }
-                                else {
-                                    return false; //ignore probe response because the probe command came from some other widget.   
-                                }
-                            };
-                            autolevel.stopAutoLevel = newStopAutoLevel;
-                            autolevel.doNextStep = newDoNextStep;
-                            autolevel.probeResponse = newProbeResponse;
-
-
-                        });
-                });
-            /*
-            // Inject new div to contain widget or use an existing div with an ID
-            $("body").append('<' + 'div id="myDivWidgetAutolevel"><' + '/div>');
-
-            chilipeppr.load(
-                "#myDivWidgetAutolevel",
-                "http://raw.githubusercontent.com/raykholo/grbl-widget-autolevel/master/auto-generated-widget.html",
-                function() {
-                    // Callback after widget loaded into #myDivWidgetAutolevel
-                    // Now use require.js to get reference to instantiated widget
-                    cprequire(
-                        ["inline:com-chilipeppr-widget-autolevel"], // the id you gave your widget
-                        function(myObjWidgetAutolevel) {
-                            // Callback that is passed reference to the newly loaded widget
-                            console.log("Widget / Auto-Level just got loaded.", myObjWidgetAutolevel);
-                            myObjWidgetAutolevel.init();
-                        }
+                            }
+                            );
+						}
                     );
                 }
-            );*/
-
-
+            );
+            
             // Macro
             // com-chilipeppr-ws-macro
             console.log('WORKSPACE: loading macro');
@@ -521,68 +343,6 @@ cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function(
                         });
                     });
                 }); //End Macro
-
-
-            /*
-            // Macro (original)
-            // com-chilipeppr-ws-autolevel
-            chilipeppr.load(
-                "#com-chilipeppr-ws-macro",
-                "http://fiddle.jshell.net/chilipeppr/ZJ5vV/show/light/",
-                function() {
-                    require(["inline:com-chilipeppr-widget-macro"], function(macro) {
-                        macro.init();
-                        // setup toggle button
-                        var alBtn = $('#com-chilipeppr-ws-gcode-menu .macro-button');
-                        var alDiv = $('#com-chilipeppr-ws-macro');
-                        alBtn.click(function() {
-                            if (alDiv.hasClass("hidden")) {
-                                // unhide
-                                alDiv.removeClass("hidden");
-                                alBtn.addClass("active");
-                                //autolevel.onDisplay();
-                            }
-                            else {
-                                alDiv.addClass("hidden");
-                                alBtn.removeClass("active");
-                                //autolevel.onUndisplay();
-                            }
-                            $(window).trigger('resize');
-
-                        });
-                    });
-                });
-                */
-
-            /*
-            // Macro (imania)
-            // com-chilipeppr-ws-autolevel
-            chilipeppr.load(
-                "#com-chilipeppr-ws-macro",
-                "http://jsfiddle.net/forstuvning/3gmfmnna/8/show/light/",
-                function() {
-                    require(["inline:com-chilipeppr-widget-macro"], function(macro) {
-                        macro.init();
-                        // setup toggle button
-                        var alBtn = $('#com-chilipeppr-ws-gcode-menu .macro-button');
-                        var alDiv = $('#com-chilipeppr-ws-macro');
-                        alBtn.click(function() {
-                            if (alDiv.hasClass("hidden")) {
-                                // unhide
-                                alDiv.removeClass("hidden");
-                                alBtn.addClass("active");
-                                //autolevel.onDisplay();
-                            }
-                            else {
-                                alDiv.addClass("hidden");
-                                alBtn.removeClass("active");
-                                //autolevel.onUndisplay();
-                            }
-                            $(window).trigger('resize');
-
-                        });
-                    });
-                });*/
 
             // JScut
             // com-chilipeppr-ws-jscut
@@ -745,73 +505,6 @@ cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function(
             };
             eagleObj.init();
 
-            // GPIO
-            // net-delarre-widget-gpio
-
-            // Dynamically load the GPIO widget, i.e. wait til user clicks on the button
-            // first time.
-            console.log('WORKSPACE: loading GPIO Widget');
-            var gpioObj = {
-                gpioBtn: null,
-                gpioDiv: null,
-                gpioInstance: null,
-                init: function() {
-                    this.gpioBtn = $('#com-chilipeppr-ws-gcode-menu .gpio-button');
-                    this.gpioDiv = $('#com-chilipeppr-ws-gpio');
-                    this.setupBtn();
-                    console.log("done instantiating GPIO add-on widget");
-                },
-                setupBtn: function() {
-                    this.gpioBtn.click(this.toggleGpio.bind(this));
-                },
-                toggleGpio: function() {
-                    if (this.gpioDiv.hasClass("hidden")) {
-                        // unhide
-                        this.showGpio();
-                    }
-                    else {
-                        this.hideGpio();
-                    }
-                },
-                showGpio: function(callback) {
-                    this.gpioDiv.removeClass("hidden");
-                    this.gpioBtn.addClass("active");
-
-                    // see if instantiated already
-                    // if so, just activate
-                    if (this.gpioInstance != null) {
-                        //this.gpioInstance.activateWidget();
-                        if (callback) callback();
-                    }
-                    else {
-                        // otherwise, dynamic load
-                        var that = this;
-                        chilipeppr.load(
-                            "#com-chilipeppr-ws-gpio",
-                            "http://fiddle.jshell.net/benjamind/L3c7csaw/show/light/",
-                            function() {
-                                require(["inline:net-delarre-widget-gpio"], function(gpio) {
-                                    that.gpioInstance = gpio;
-                                    console.log("GPIO instantiated. gpioInstance:", that.gpioInstance);
-                                    that.gpioInstance.init();
-                                    //eagleInstance.activateWidget();
-                                    if (callback) callback();
-                                });
-                            }
-                        );
-                    }
-                    $(window).trigger('resize');
-                },
-                hideGpio: function() {
-                    this.gpioDiv.addClass("hidden");
-                    this.gpioBtn.removeClass("active");
-                    if (this.gpioInstance != null) {
-                        //this.gpioInstance.unactivateWidget();
-                    }
-                    $(window).trigger('resize');
-                },
-            };
-            gpioObj.init();
 
             console.log('WORKSPACE: loading shuttleExpress');
 
@@ -1426,16 +1119,18 @@ cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function(
                             xyz.jog = newJog;
                             xyz.homeAxis = newHomeAxis;
                             xyz.sendDone = newSendDone;
-                            xyz.grblVersion = '';
-                            xyz.setGrblVersion = function(version) {
-                                this.grblVersion = version;
-                            };
+                            xyz.grblVersion = "0.8";
                             xyz.isGrblV1 = function() {
+                            	return false;
                                 if (xyz.grblVersion.length == 0) return false;
                                 return (xyz.grblVersion.substring(0, 1) == '1');
                             };
+                            /*
+                            xyz.setGrblVersion = function(version) {
+                                this.grblVersion = version;
+                            };
                             chilipeppr.subscribe("/com-chilipeppr-interface-cnccontroller/grblVersion", xyz, xyz.setGrblVersion);
-
+							*/
                             xyz.setJogFeedRate = function(jogFeedRate) {
                                 this.jogFeedRate = jogFeedRate;
                             };
@@ -1612,7 +1307,6 @@ cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function(
                 });
 
 
-            console.log('WORKSPACE: loading macros at line 1379');
             chilipeppr.load(
                 "#com-chilipeppr-ws-macro",
                 "http://jsfiddle.net/forstuvning/3gmfmnna/8/show/light/",
@@ -1643,7 +1337,6 @@ cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function(
 
             // Serial Port Log Window
             // http://jsfiddle.net/chilipeppr/rczajbx0/
-            console.log('WORKSPACE: loading serial port log');
             chilipeppr.load("#com-chilipeppr-serialport-log",
                 "http://fiddle.jshell.net/chilipeppr/rczajbx0/show/light/",
 
@@ -1657,7 +1350,6 @@ cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function(
                             var oldOnRecvLine = spc.onRecvLine.bind(spc);
                             var newOnRecvLine = function(data) {
                                 //ignore incoming status update to keep console clear otherwise continue with original function
-                                console.log("GRBL: AltOnRecvLine: " + data.dataline);
                                 if (data.dataline.search(/^<|^\$G|^\?|^\[/) < 0 || $('#com-chilipeppr-widget-grbl .grbl-verbose').hasClass("enabled")) {
                                     data.dataline = data.dataline.replace("<", "&lt;").replace(">", "&gt;");
                                     oldOnRecvLine(data);
@@ -1665,7 +1357,6 @@ cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function(
                             };
                             var oldJsonOnQueue = spc.jsonOnQueue.bind(spc);
                             var newJsonOnQueue = function(data) {
-                                console.log("GRBL: AltJsonOnQueue: " + data);
                                 if (data.D.search(/^<|^\$G|^\?|^\[/) < 0 || $('#com-chilipeppr-widget-grbl .grbl-verbose').hasClass("enabled")) {
                                     data.D = data.D.replace("<", "&lt;").replace(">", "&gt;");
                                     oldJsonOnQueue(data);
@@ -1696,24 +1387,17 @@ cpdefine("inline:com-chilipeppr-workspace-grbl", ["chilipeppr_ready"], function(
 
 
 
-            // GRBL
-            // http://jsfiddle.net/jarret/b5L2rtgc/ //alternate test version of grbl controller
-            // com-chilipeppr-grbl
-
-            console.log('WORKSPACE: loading grbl widget');
-
+            // GRBL for Smoothie
             chilipeppr.load(
-                "#com-chilipeppr-widget-grbl-instance",
-                "http://raw.githubusercontent.com/jpadie/grbl1-test-widget/master/auto-generated-widget.html",
-
+                "#com-chilipeppr-widget-grbl-smoothie-instance",
+				"http://raw.githubusercontent.com/jpadie/widget-grbl-autolevel/master/auto-generated-widget.html",
                 function() {
                     cprequire(
-                        ["inline:com-chilipeppr-widget-grbl"], //"inline:com-chilipeppr-widget-spconsole"],
-                        //, "inline:com-chilipeppr-serialport-spselector"],
+                        ["inline:com-chilipeppr-widget-grbl-smoothie"], 
 
-                        function(grbl) { //,spconsole) {
+                        function(smoothieGrbl) {) {
 
-                            grbl.init();
+                            smoothieGrbl.init();
 
                         });
                 });
