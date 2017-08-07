@@ -1,5 +1,5 @@
 /* global cpdefine chilipeppr cprequire $ cprequire_test */
-cprequire_test(["inline:com-chilipeppr-workspace-grbl"], function(ws) {
+cprequire_test(["inline:com-chilipeppr-workspace-grbl-smoothie"], function(ws) {
 
     console.log("initting workspace");
 
@@ -418,13 +418,15 @@ cpdefine("inline:com-chilipeppr-workspace-grbl-smoothie", ["chilipeppr_ready"], 
                             "#com-chilipeppr-ws-eagle",
                             "http://raw.githubusercontent.com/chilipeppr/widget-eagle/master/auto-generated-widget.html",
                             function() {
-                                require(["inline:com-chilipeppr-widget-eagle"], function(eagle) {
-                                    that.eagleInstance = eagle;
-                                    console.log("Eagle BRD instantiated. eagleInstance:", that.eagleInstance);
-                                    that.eagleInstance.init();
-                                    //eagleInstance.activateWidget();
-                                    if (callback) callback();
-                                });
+                                require(["inline:com-chilipeppr-widget-eagle"], 
+                                    function(eagle) {
+                                       that.eagleInstance = eagle;
+                                        console.log("Eagle BRD instantiated. eagleInstance:", that.eagleInstance);
+                                        that.eagleInstance.init();
+                                        //eagleInstance.activateWidget();
+                                        if (callback) callback();
+                                    }
+                                );
                             }
                         );
                     }
@@ -1395,7 +1397,7 @@ cpdefine("inline:com-chilipeppr-workspace-grbl-smoothie", ["chilipeppr_ready"], 
                     cprequire(
                         ["inline:com-chilipeppr-widget-grbl-smoothie"], 
 
-                        function(smoothieGrbl) {) {
+                        function(smoothieGrbl) {
 
                             smoothieGrbl.init();
 
